@@ -283,7 +283,7 @@ def webhook():
     user_id = message["from"]["id"]
     text = message.get("text", "")
 
-    send_message(chat_id,
+    send_message (chat_id,)
     "Привет! 👋 Я твой личный трекер трат и накоплений 💰\n\n"
     "Никаких сложных форм и таблиц — просто пиши мне как другу, что произошло, и я всё аккуратно запишу 📝\n\n"
     "Например:\n"
@@ -297,7 +297,7 @@ def webhook():
     "💬 Вопросы или предложения по сотрудничеству — пиши @genyalenslava",
     reply_markup={"inline_keyboard": [[{"text": "📊 Открыть трекер", "web_app": {"url": APP_URL}}]]}
 
-        return jsonify({"ok": True})
+    return jsonify({"ok": True})
 
     parsed = parse_rule_based(text)
     data = load_data()
@@ -339,4 +339,3 @@ def cron_remind():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-    
