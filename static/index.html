@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Трекер накоплений</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, sans-serif;
+    background: var(--tg-theme-bg-color, #ffffff);
+    color: var(--tg-theme-text-color, #111111);
+    margin: 0;
+    padding: 16px;
+  }
+  .card {
+    background: var(--tg-theme-secondary-bg-color, #f2f2f2);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .balance {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .balance .label {
+    font-size: 13px;
+    opacity: 0.7;
+  }
+  .balance .amount {
+    font-size: 28px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  select, input, button {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 15px;
+    margin-top: 8px;
+    box-sizing: border-box;
+  }
+  button {
+    background: var(--tg-theme-button-color, #2481cc);
+    color: var(--tg-theme-button-text-color, #ffffff);
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .history-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    font-size: 14px;
+  }
+  .error {
+    color: #e74c3c;
+    font-size: 13px;
+    margin-top: 6px;
+    display: none;
+  }
+  .row { display: flex; gap: 8px; }
+  .row input { width: auto; flex: 1; }
+</style>
+</head>
+<body>
+
+  <div class="balance">
+    <div class="label">Текущий баланс</div>
+    <div class="amount" id="balance">0</div>
+  </div>
+
+  <div class="card">
+    <label style="font-size: 13px; opacity: 0.7;">Валюта</label>
+    <select id="currency"></select>
+  </div>
+
+  <div class="card">
+    <label style="font-size: 13px; opacity: 0.7;">Добавить операцию</label>
+    <div class="row">
+      <input type="number" id="amount" placeholder="Сумма (например 5000 или -1200)">
+    </div>
+    <input type="text" id="comment" placeholder="Комментарий (например зарплата)">
+    <div class="error" id="error"></div>
+    <button id="addBtn">Добавить</button>
+  </div>
+
+  <div class="card">
+    <label style="font-size: 13px; opacity: 0.7;">Последние операции</label>
+    <div id="history"></div>
+  </div>
+
+<script>
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+
+  const userId = tg.initDataUnsafe?.user?.id;
+  const CURRENCIES = ["₽", "$", "€", "₴", "£"];
+
+  const balanceEl = document.getElementById("balance");
+  const currencyEl = document.getElementById("currency");
+  const historyEl = document.getElementById("history");
+  const amountEl = document.getElementById("amount");
+  const commentEl = document.getElementById("comment");
+  const errorEl = document.getElementById("error");
+  const addBtn = document.getElementById("addBtn");
+
+  let currentCurrency = "₽";
+
+  CURRENCIES.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    currencyEl.appendChild(opt);
+  });
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.style.display = "block";
+  }
+
+  function clearError() {
+    errorEl.style.display = "none";
+  }
+
+  function render(data) {
+    currentCurrency = data.currency || "₽";
+    balanceEl.textContent = `${data.balance} ${currentCurrency}`;
+    currencyEl.value = currentCurrency;
+
+    historyEl.innerHTML = "";
+    (data.history || []).forEach(item => {
+      const row = document.createElement("div");
+      row.className = "history-item";
+      const sign = item.amount > 0 ? "+" : "";
+      row.innerHTML = `<span>${item.comment}</span><span>${sign}${item.amount} ${currentCurrency}</span>`;
+      historyEl.appendChild(row);
+    });
+  }
+
+  async function loadData() {
+    if (!userId) {
+      showError("Не удалось определить пользователя. Открой это через кнопку в боте, не напрямую в браузере.");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/data?user_id=${userId}`);
+      const data = await res.json();
+      render(data);
+    } catch (e) {
+      showError("Не получилось загрузить данные. Проверь, что сервер запущен.");
+    }
+  }
+
+  currencyEl.addEventListener("change", async () => {
+    try {
+      const res = await fetch("/api/currency", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, currency: currencyEl.value })
+      });
+      const data = await res.json();
+      render(data);
+    } catch (e) {
+      showError("Не получилось сменить валюту.");
+    }
+  });
+
+  addBtn.addEventListener("click", async () => {
+    clearError();
+    const amount = parseFloat(amountEl.value);
+    if (isNaN(amount) || amount === 0) {
+      showError("Введи сумму — например 5000 или -1200");
+      return;
+    }
+    try {
+      const res = await fetch("/api/operation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          amount: amount,
+          comment: commentEl.value
+        })
+      });
+      const data = await res.json();
+      render(data);
+      amountEl.value = "";
+      commentEl.value = "";
+    } catch (e) {
+      showError("Не получилось сохранить операцию.");
+    }
+  });
+
+  loadData();
+</script>
+</body>
+</html>
