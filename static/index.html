@@ -5,92 +5,222 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Трекер накоплений</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
+
   body {
-    font-family: -apple-system, sans-serif;
-    background: var(--tg-theme-bg-color, #ffffff);
-    color: var(--tg-theme-text-color, #111111);
+    font-family: 'Inter', -apple-system, sans-serif;
     margin: 0;
     padding: 16px;
+    min-height: 100vh;
+    background: radial-gradient(circle at 20% 0%, #2b2560 0%, #14122b 45%, #0a0918 100%);
+    color: #f2f0fa;
   }
-  .card {
-    background: var(--tg-theme-secondary-bg-color, #f2f2f2);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 12px;
-  }
-  .balance {
-    text-align: center;
+
+  .tabs {
+    display: flex;
+    gap: 8px;
     margin-bottom: 16px;
   }
-  .balance .label {
-    font-size: 13px;
-    opacity: 0.7;
-  }
-  .balance .amount {
-    font-size: 28px;
-    font-weight: 600;
-    margin-top: 4px;
-  }
-  select, input, button {
-    width: 100%;
+  .tab {
+    flex: 1;
+    text-align: center;
     padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 15px;
-    margin-top: 8px;
-    box-sizing: border-box;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0.55;
   }
-  button {
-    background: var(--tg-theme-button-color, #2481cc);
-    color: var(--tg-theme-button-text-color, #ffffff);
+  .tab.active {
+    opacity: 1;
+    background: linear-gradient(135deg, rgba(167,139,250,0.25), rgba(236,72,153,0.25));
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  .top { text-align: center; margin-bottom: 18px; }
+  .top .brand { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; font-weight: 600; }
+  .top .amount {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 36px;
+    margin-top: 6px;
+    background: linear-gradient(90deg, #a78bfa, #f0abfc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.09);
+    backdrop-filter: blur(14px);
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .card-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    opacity: 0.5;
+    margin: 0 0 10px;
+  }
+
+  select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.25);
+    color: #fff;
+    font-size: 15px;
+  }
+
+  .quick-input { display: flex; gap: 8px; }
+  .quick-input input {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.25);
+    color: #fff;
+    font-size: 15px;
+  }
+  .quick-input input::placeholder { color: rgba(255,255,255,0.35); font-size: 13px; }
+  .quick-input button {
+    padding: 0 18px;
+    border-radius: 12px;
     border: none;
-    font-weight: 500;
+    background: linear-gradient(135deg, #a78bfa, #ec4899);
+    color: #fff;
+    font-weight: 700;
+    font-size: 20px;
     cursor: pointer;
   }
+  .hint { font-size: 11px; opacity: 0.4; margin-top: 8px; }
+
+  .goal { margin-bottom: 16px; }
+  .goal:last-child { margin-bottom: 0; }
+  .goal-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .goal-head .name { font-weight: 700; font-size: 14px; }
+  .goal-head .pct { font-family: 'Archivo Black', sans-serif; font-size: 15px; color: #6ee7b7; }
+  .goal-nums { font-size: 11px; opacity: 0.5; margin-bottom: 6px; }
+  .bar-track { background: rgba(255,255,255,0.08); border-radius: 999px; height: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #34d399, #a7f3d0); }
+
   .history-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(0,0,0,0.08);
-    font-size: 14px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 14px;
   }
-  .error {
-    color: #e74c3c;
-    font-size: 13px;
-    margin-top: 6px;
-    display: none;
+  .history-item:last-child { border-bottom: none; }
+  .history-item .emoji { font-size: 18px; }
+  .history-item .comment { flex: 1; opacity: 0.85; font-size: 13px; }
+  .history-item .amt { font-weight: 700; font-size: 14px; }
+  .amt.pos { color: #6ee7b7; }
+  .amt.neg { color: #fda4af; }
+
+  .empty { font-size: 12px; opacity: 0.4; text-align: center; padding: 8px 0; }
+  .error { color: #fda4af; font-size: 12px; margin-top: 8px; display: none; }
+
+  .debt-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
   }
-  .row { display: flex; gap: 8px; }
-  .row input { width: auto; flex: 1; }
+  .debt-item:last-child { border-bottom: none; }
+  .debt-item .info { flex: 1; }
+  .debt-item .dname { font-weight: 700; font-size: 14px; }
+  .debt-item .damt { font-size: 12px; opacity: 0.6; }
+  .debt-item button {
+    padding: 6px 12px; border-radius: 8px; border: none;
+    background: rgba(110,231,183,0.15); color: #6ee7b7;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .debt-section-title { font-size: 12px; font-weight: 700; opacity: 0.6; margin: 12px 0 6px; }
+  .debt-section-title:first-child { margin-top: 0; }
+
+  .debt-form { display: flex; flex-direction: column; gap: 8px; }
+  .debt-form input {
+    padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.25); color: #fff; font-size: 14px;
+  }
+  .direction-toggle { display: flex; gap: 8px; }
+  .direction-toggle button {
+    flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.2); color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .direction-toggle button.active.in { background: rgba(110,231,183,0.2); color: #6ee7b7; border-color: rgba(110,231,183,0.4); }
+  .direction-toggle button.active.out { background: rgba(253,164,175,0.2); color: #fda4af; border-color: rgba(253,164,175,0.4); }
+  .debt-form .addBtn {
+    padding: 12px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, #a78bfa, #ec4899); color: #fff; font-weight: 700; cursor: pointer;
+  }
+
+  .hidden { display: none; }
 </style>
 </head>
 <body>
 
-  <div class="balance">
-    <div class="label">Текущий баланс</div>
-    <div class="amount" id="balance">0</div>
+  <div class="tabs">
+    <div class="tab active" data-tab="main">Главная</div>
+    <div class="tab" data-tab="debts">Долги</div>
   </div>
 
-  <div class="card">
-    <label style="font-size: 13px; opacity: 0.7;">Валюта</label>
-    <select id="currency"></select>
-  </div>
-
-  <div class="card">
-    <label style="font-size: 13px; opacity: 0.7;">Добавить операцию</label>
-    <div class="row">
-      <input type="number" id="amount" placeholder="Сумма (например 5000 или -1200)">
+  <div id="mainTab">
+    <div class="top">
+      <div class="brand">Мой трекер</div>
+      <div class="amount" id="balance">0 ₽</div>
     </div>
-    <input type="text" id="comment" placeholder="Комментарий (например зарплата)">
-    <div class="error" id="error"></div>
-    <button id="addBtn">Добавить</button>
+
+    <div class="card">
+      <p class="card-title">Быстрая запись</p>
+      <div class="quick-input">
+        <input type="text" id="quickText" placeholder="потратил 350 на кофе / отложил 5000 на машину">
+        <button id="quickBtn">→</button>
+      </div>
+      <p class="hint">Фраза вида «потратил / отложил / зарплата» — сумма и категория определятся сами</p>
+      <p class="error" id="error"></p>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Валюта</p>
+      <select id="currency"></select>
+    </div>
+
+    <div class="card hidden" id="goalsCard">
+      <p class="card-title">Цели накопления</p>
+      <div id="goals"></div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Последние операции</p>
+      <div id="history"></div>
+    </div>
   </div>
 
-  <div class="card">
-    <label style="font-size: 13px; opacity: 0.7;">Последние операции</label>
-    <div id="history"></div>
+  <div id="debtsTab" class="hidden">
+    <div class="card">
+      <p class="card-title">Мне должны / Я должен</p>
+      <div id="debtsList"></div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Записать долг</p>
+      <div class="debt-form">
+        <input type="text" id="debtName" placeholder="Имя (например Саша)">
+        <input type="number" id="debtAmount" placeholder="Сумма">
+        <div class="direction-toggle">
+          <button type="button" id="dirIn" class="active in">Мне должны</button>
+          <button type="button" id="dirOut">Я должен</button>
+        </div>
+        <button class="addBtn" id="addDebtBtn">Добавить</button>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -104,12 +234,15 @@
   const balanceEl = document.getElementById("balance");
   const currencyEl = document.getElementById("currency");
   const historyEl = document.getElementById("history");
-  const amountEl = document.getElementById("amount");
-  const commentEl = document.getElementById("comment");
+  const goalsEl = document.getElementById("goals");
+  const goalsCardEl = document.getElementById("goalsCard");
+  const quickText = document.getElementById("quickText");
+  const quickBtn = document.getElementById("quickBtn");
   const errorEl = document.getElementById("error");
-  const addBtn = document.getElementById("addBtn");
+  const debtsListEl = document.getElementById("debtsList");
 
   let currentCurrency = "₽";
+  let currentDirection = "in";
 
   CURRENCIES.forEach(c => {
     const opt = document.createElement("option");
@@ -118,14 +251,18 @@
     currencyEl.appendChild(opt);
   });
 
-  function showError(msg) {
-    errorEl.textContent = msg;
-    errorEl.style.display = "block";
-  }
+  // Tabs
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById("mainTab").classList.toggle("hidden", tab.dataset.tab !== "main");
+      document.getElementById("debtsTab").classList.toggle("hidden", tab.dataset.tab !== "debts");
+    });
+  });
 
-  function clearError() {
-    errorEl.style.display = "none";
-  }
+  function showError(msg) { errorEl.textContent = msg; errorEl.style.display = "block"; }
+  function clearError() { errorEl.style.display = "none"; }
 
   function render(data) {
     currentCurrency = data.currency || "₽";
@@ -133,18 +270,83 @@
     currencyEl.value = currentCurrency;
 
     historyEl.innerHTML = "";
-    (data.history || []).forEach(item => {
+    const history = data.history || [];
+    if (history.length === 0) {
+      historyEl.innerHTML = '<div class="empty">Пока пусто — напиши первую трату выше</div>';
+    }
+    history.forEach(item => {
       const row = document.createElement("div");
       row.className = "history-item";
       const sign = item.amount > 0 ? "+" : "";
-      row.innerHTML = `<span>${item.comment}</span><span>${sign}${item.amount} ${currentCurrency}</span>`;
+      const cls = item.amount > 0 ? "pos" : "neg";
+      row.innerHTML = `
+        <span class="emoji">${item.emoji || "✨"}</span>
+        <span class="comment">${item.comment}</span>
+        <span class="amt ${cls}">${sign}${item.amount} ${currentCurrency}</span>
+      `;
       historyEl.appendChild(row);
     });
+
+    const goals = data.goals || {};
+    const goalNames = Object.keys(goals);
+    goalsCardEl.classList.toggle("hidden", goalNames.length === 0);
+    goalsEl.innerHTML = "";
+    goalNames.forEach(name => {
+      const g = goals[name];
+      const pct = Math.min(100, Math.round((g.saved / g.target) * 100));
+      const div = document.createElement("div");
+      div.className = "goal";
+      div.innerHTML = `
+        <div class="goal-head">
+          <span class="name">🎯 ${name}</span>
+          <span class="pct">${pct}%</span>
+        </div>
+        <div class="goal-nums">${g.saved} / ${g.target} ${currentCurrency}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+      `;
+      goalsEl.appendChild(div);
+    });
+
+    renderDebts(data.debts || []);
+  }
+
+  function renderDebts(debts) {
+    debtsListEl.innerHTML = "";
+    const owedToMe = debts.filter(d => d.direction === "in");
+    const iOwe = debts.filter(d => d.direction === "out");
+
+    if (debts.length === 0) {
+      debtsListEl.innerHTML = '<div class="empty">Долгов нет</div>';
+      return;
+    }
+
+    if (owedToMe.length > 0) {
+      debtsListEl.innerHTML += '<div class="debt-section-title">Мне должны</div>';
+      owedToMe.forEach(d => debtsListEl.appendChild(debtRow(d, "#6ee7b7")));
+    }
+    if (iOwe.length > 0) {
+      debtsListEl.innerHTML += '<div class="debt-section-title">Я должен</div>';
+      iOwe.forEach(d => debtsListEl.appendChild(debtRow(d, "#fda4af")));
+    }
+  }
+
+  function debtRow(d, color) {
+    const row = document.createElement("div");
+    row.className = "debt-item";
+    row.innerHTML = `
+      <div class="info">
+        <div class="dname">${d.name}</div>
+        <div class="damt" style="color:${color}">${d.amount} ${currentCurrency}</div>
+      </div>
+      <button data-id="${d.id}">Отдал ✓</button>
+    `;
+    row.querySelector("button").addEventListener("click", () => resolveDebt(d.id));
+    return row;
   }
 
   async function loadData() {
     if (!userId) {
-      showError("Не удалось определить пользователя. Открой это через кнопку в боте, не напрямую в браузере.");
+      showError("Открой это через кнопку в боте, не напрямую в браузере.");
       return;
     }
     try {
@@ -152,7 +354,7 @@
       const data = await res.json();
       render(data);
     } catch (e) {
-      showError("Не получилось загрузить данные. Проверь, что сервер запущен.");
+      showError("Не получилось загрузить данные.");
     }
   }
 
@@ -163,38 +365,72 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId, currency: currencyEl.value })
       });
-      const data = await res.json();
-      render(data);
-    } catch (e) {
-      showError("Не получилось сменить валюту.");
-    }
+      render(await res.json());
+    } catch (e) { showError("Не получилось сменить валюту."); }
   });
 
-  addBtn.addEventListener("click", async () => {
+  async function submitQuick() {
     clearError();
-    const amount = parseFloat(amountEl.value);
-    if (isNaN(amount) || amount === 0) {
-      showError("Введи сумму — например 5000 или -1200");
-      return;
-    }
+    const text = quickText.value.trim();
+    if (!text) return;
+    quickBtn.disabled = true;
     try {
-      const res = await fetch("/api/operation", {
+      const res = await fetch("/api/quick-add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: userId,
-          amount: amount,
-          comment: commentEl.value
-        })
+        body: JSON.stringify({ user_id: userId, text })
       });
       const data = await res.json();
       render(data);
-      amountEl.value = "";
-      commentEl.value = "";
+      quickText.value = "";
     } catch (e) {
-      showError("Не получилось сохранить операцию.");
+      showError("Не получилось записать — попробуй иначе.");
+    } finally {
+      quickBtn.disabled = false;
     }
+  }
+  quickBtn.addEventListener("click", submitQuick);
+  quickText.addEventListener("keydown", (e) => { if (e.key === "Enter") submitQuick(); });
+
+  // Debts
+  document.getElementById("dirIn").addEventListener("click", () => {
+    currentDirection = "in";
+    document.getElementById("dirIn").classList.add("active");
+    document.getElementById("dirOut").classList.remove("active");
   });
+  document.getElementById("dirOut").addEventListener("click", () => {
+    currentDirection = "out";
+    document.getElementById("dirOut").classList.add("active");
+    document.getElementById("dirIn").classList.remove("active");
+  });
+
+  document.getElementById("addDebtBtn").addEventListener("click", async () => {
+    const name = document.getElementById("debtName").value.trim();
+    const amount = document.getElementById("debtAmount").value;
+    if (!name || !amount) return;
+    try {
+      const res = await fetch("/api/debt/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, name, amount, direction: currentDirection })
+      });
+      const data = await res.json();
+      render(data);
+      document.getElementById("debtName").value = "";
+      document.getElementById("debtAmount").value = "";
+    } catch (e) { showError("Не получилось добавить долг."); }
+  });
+
+  async function resolveDebt(id) {
+    try {
+      const res = await fetch("/api/debt/resolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, debt_id: id })
+      });
+      render(await res.json());
+    } catch (e) { showError("Не получилось отметить долг."); }
+  }
 
   loadData();
 </script>
