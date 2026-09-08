@@ -283,7 +283,7 @@ def webhook():
     user_id = message["from"]["id"]
     text = message.get("text", "")
 
-    send_message (chat_id,)
+    send_message(chat_id,
     "Привет! 👋 Я твой личный трекер трат и накоплений 💰\n\n"
     "Никаких сложных форм и таблиц — просто пиши мне как другу, что произошло, и я всё аккуратно запишу 📝\n\n"
     "Например:\n"
@@ -295,7 +295,7 @@ def webhook():
     "Я сам пойму сумму, категорию и добавлю нужный эмодзи 😉\n\n"
     "📊 Хочешь увидеть полную картину — баланс, историю, графики? Жми на кнопку ниже 👇\n\n"
     "💬 Вопросы или предложения по сотрудничеству — пиши @genyalenslava",
-    reply_markup={"inline_keyboard": [[{"text": "📊 Открыть трекер", "web_app": {"url": APP_URL}}]]}
+    reply_markup={"inline_keyboard": [[{"text": "📊 Открыть трекер", "web_app": {"url": APP_URL}}]]})
 
     return jsonify({"ok": True})
 
