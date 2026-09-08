@@ -268,7 +268,8 @@ def send_message(chat_id, text, reply_markup=None):
     payload = {"chat_id": chat_id, "text": text}
     if reply_markup:
         payload["reply_markup"] = reply_markup
-    requests.post(f"{TG_BASE}/sendMessage", json=payload)
+    r = requests.post(f"{TG_BASE}/sendMessage", json=payload)
+    print("SEND RESPONSE:", r.status_code, r.text)
 
 
 @app.route("/webhook", methods=["POST"])
