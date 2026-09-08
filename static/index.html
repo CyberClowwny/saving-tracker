@@ -6,7 +6,7 @@
 <title>Трекер накоплений</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
 
@@ -19,22 +19,11 @@
     color: #f2f0fa;
   }
 
-  .tabs {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
-  }
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
   .tab {
-    flex: 1;
-    text-align: center;
-    padding: 10px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    opacity: 0.55;
+    flex: 1; text-align: center; padding: 10px; border-radius: 12px;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+    font-size: 13px; font-weight: 700; cursor: pointer; opacity: 0.5;
   }
   .tab.active {
     opacity: 1;
@@ -42,68 +31,67 @@
     border-color: rgba(255,255,255,0.2);
   }
 
-  .top { text-align: center; margin-bottom: 18px; }
-  .top .brand { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; font-weight: 600; }
+  .top { text-align: center; margin-bottom: 10px; }
+  .top .brand { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.5; font-weight: 700; }
   .top .amount {
-    font-family: 'Archivo Black', sans-serif;
-    font-size: 36px;
-    margin-top: 6px;
+    font-family: 'Archivo Black', sans-serif; font-size: 36px; margin-top: 6px;
     background: linear-gradient(90deg, #a78bfa, #f0abfc);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .streak-badge {
+    display: inline-block; margin-top: 8px; padding: 4px 12px; border-radius: 999px;
+    background: rgba(251,146,60,0.15); color: #fb923c; font-size: 12px; font-weight: 700;
   }
 
   .card {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.09);
-    backdrop-filter: blur(14px);
-    border-radius: 18px;
-    padding: 16px;
-    margin-bottom: 14px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09);
+    backdrop-filter: blur(14px); border-radius: 18px; padding: 16px; margin-bottom: 14px;
   }
+  .card-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; opacity: 0.5; margin: 0 0 10px; }
 
-  .card-title {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 600;
-    opacity: 0.5;
-    margin: 0 0 10px;
+  .templates { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 10px; padding-bottom: 2px; }
+  .chip {
+    flex-shrink: 0; display: flex; align-items: center; gap: 6px;
+    padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
   }
 
   select {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(0,0,0,0.25);
-    color: #fff;
-    font-size: 15px;
+    width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.25); color: #fff; font-size: 15px;
   }
 
   .quick-input { display: flex; gap: 8px; }
   .quick-input input {
-    flex: 1;
-    padding: 12px 14px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(0,0,0,0.25);
-    color: #fff;
-    font-size: 15px;
+    flex: 1; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.25); color: #fff; font-size: 15px;
   }
   .quick-input input::placeholder { color: rgba(255,255,255,0.35); font-size: 13px; }
   .quick-input button {
-    padding: 0 18px;
-    border-radius: 12px;
-    border: none;
-    background: linear-gradient(135deg, #a78bfa, #ec4899);
-    color: #fff;
-    font-weight: 700;
-    font-size: 20px;
-    cursor: pointer;
+    padding: 0 18px; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, #a78bfa, #ec4899); color: #fff; font-weight: 700; font-size: 20px; cursor: pointer;
   }
   .hint { font-size: 11px; opacity: 0.4; margin-top: 8px; }
+
+  .donut-wrap { display: flex; align-items: center; gap: 18px; }
+  .donut {
+    width: 108px; height: 108px; border-radius: 50%; flex-shrink: 0; position: relative;
+  }
+  .donut::after {
+    content: ''; position: absolute; inset: 14px; border-radius: 50%;
+    background: #17142e;
+  }
+  .donut-total {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; z-index: 2;
+  }
+  .donut-total .num { font-family: 'Archivo Black', sans-serif; font-size: 15px; }
+  .donut-total .lbl { font-size: 9px; opacity: 0.5; margin-top: 2px; }
+  .legend { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+  .legend-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .legend-cat { flex: 1; opacity: 0.85; }
+  .legend-pct { font-weight: 700; opacity: 0.9; }
 
   .goal { margin-bottom: 16px; }
   .goal:last-child { margin-bottom: 0; }
@@ -114,10 +102,7 @@
   .bar-track { background: rgba(255,255,255,0.08); border-radius: 999px; height: 8px; overflow: hidden; }
   .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #34d399, #a7f3d0); }
 
-  .history-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 14px;
-  }
+  .history-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 14px; }
   .history-item:last-child { border-bottom: none; }
   .history-item .emoji { font-size: 18px; }
   .history-item .comment { flex: 1; opacity: 0.85; font-size: 13px; }
@@ -128,38 +113,22 @@
   .empty { font-size: 12px; opacity: 0.4; text-align: center; padding: 8px 0; }
   .error { color: #fda4af; font-size: 12px; margin-top: 8px; display: none; }
 
-  .debt-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
+  .debt-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
   .debt-item:last-child { border-bottom: none; }
   .debt-item .info { flex: 1; }
   .debt-item .dname { font-weight: 700; font-size: 14px; }
   .debt-item .damt { font-size: 12px; opacity: 0.6; }
-  .debt-item button {
-    padding: 6px 12px; border-radius: 8px; border: none;
-    background: rgba(110,231,183,0.15); color: #6ee7b7;
-    font-size: 12px; font-weight: 600; cursor: pointer;
-  }
+  .debt-item button { padding: 6px 12px; border-radius: 8px; border: none; background: rgba(110,231,183,0.15); color: #6ee7b7; font-size: 12px; font-weight: 700; cursor: pointer; }
   .debt-section-title { font-size: 12px; font-weight: 700; opacity: 0.6; margin: 12px 0 6px; }
   .debt-section-title:first-child { margin-top: 0; }
 
   .debt-form { display: flex; flex-direction: column; gap: 8px; }
-  .debt-form input {
-    padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(0,0,0,0.25); color: #fff; font-size: 14px;
-  }
+  .debt-form input { padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.25); color: #fff; font-size: 14px; }
   .direction-toggle { display: flex; gap: 8px; }
-  .direction-toggle button {
-    flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(0,0,0,0.2); color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 600; cursor: pointer;
-  }
+  .direction-toggle button { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.2); color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 700; cursor: pointer; }
   .direction-toggle button.active.in { background: rgba(110,231,183,0.2); color: #6ee7b7; border-color: rgba(110,231,183,0.4); }
   .direction-toggle button.active.out { background: rgba(253,164,175,0.2); color: #fda4af; border-color: rgba(253,164,175,0.4); }
-  .debt-form .addBtn {
-    padding: 12px; border-radius: 10px; border: none;
-    background: linear-gradient(135deg, #a78bfa, #ec4899); color: #fff; font-weight: 700; cursor: pointer;
-  }
+  .debt-form .addBtn { padding: 12px; border-radius: 10px; border: none; background: linear-gradient(135deg, #a78bfa, #ec4899); color: #fff; font-weight: 700; cursor: pointer; }
 
   .hidden { display: none; }
 </style>
@@ -175,16 +144,28 @@
     <div class="top">
       <div class="brand">Мой трекер</div>
       <div class="amount" id="balance">0 ₽</div>
+      <div class="streak-badge hidden" id="streakBadge">🔥 0 дн. подряд</div>
     </div>
 
     <div class="card">
       <p class="card-title">Быстрая запись</p>
+      <div class="templates" id="templates"></div>
       <div class="quick-input">
         <input type="text" id="quickText" placeholder="потратил 350 на кофе / отложил 5000 на машину">
         <button id="quickBtn">→</button>
       </div>
-      <p class="hint">Фраза вида «потратил / отложил / зарплата» — сумма и категория определятся сами</p>
+      <p class="hint">Фраза вида «потратил / отложил / зарплата» — сумма и категория сами</p>
       <p class="error" id="error"></p>
+    </div>
+
+    <div class="card hidden" id="summaryCard">
+      <p class="card-title">Траты в этом месяце</p>
+      <div class="donut-wrap">
+        <div class="donut" id="donut">
+          <div class="donut-total"><span class="num" id="donutTotal">0</span><span class="lbl">всего</span></div>
+        </div>
+        <div class="legend" id="legend"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -208,7 +189,6 @@
       <p class="card-title">Мне должны / Я должен</p>
       <div id="debtsList"></div>
     </div>
-
     <div class="card">
       <p class="card-title">Записать долг</p>
       <div class="debt-form">
@@ -229,9 +209,10 @@
   tg.expand();
 
   const userId = tg.initDataUnsafe?.user?.id;
-  const CURRENCIES = ["₽", "$", "€", "₴", "£"];
+  const CURRENCIES = ["₽", "$", "€", "₴", "£", "PLN"];
 
   const balanceEl = document.getElementById("balance");
+  const streakBadgeEl = document.getElementById("streakBadge");
   const currencyEl = document.getElementById("currency");
   const historyEl = document.getElementById("history");
   const goalsEl = document.getElementById("goals");
@@ -240,6 +221,11 @@
   const quickBtn = document.getElementById("quickBtn");
   const errorEl = document.getElementById("error");
   const debtsListEl = document.getElementById("debtsList");
+  const templatesEl = document.getElementById("templates");
+  const summaryCardEl = document.getElementById("summaryCard");
+  const donutEl = document.getElementById("donut");
+  const donutTotalEl = document.getElementById("donutTotal");
+  const legendEl = document.getElementById("legend");
 
   let currentCurrency = "₽";
   let currentDirection = "in";
@@ -251,7 +237,6 @@
     currencyEl.appendChild(opt);
   });
 
-  // Tabs
   document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", () => {
       document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
@@ -264,10 +249,63 @@
   function showError(msg) { errorEl.textContent = msg; errorEl.style.display = "block"; }
   function clearError() { errorEl.style.display = "none"; }
 
+  function renderTemplates(templates) {
+    templatesEl.innerHTML = "";
+    (templates || []).forEach(t => {
+      const chip = document.createElement("div");
+      chip.className = "chip";
+      chip.innerHTML = `<span>${t.emoji}</span><span>${t.label}</span>`;
+      chip.addEventListener("click", () => { quickText.value = t.text; submitQuick(); });
+      templatesEl.appendChild(chip);
+    });
+  }
+
+  function renderDonut(monthStats, colors) {
+    const entries = Object.entries(monthStats || {});
+    if (entries.length === 0) {
+      summaryCardEl.classList.add("hidden");
+      return;
+    }
+    summaryCardEl.classList.remove("hidden");
+    const total = entries.reduce((s, [, v]) => s + v, 0);
+    donutTotalEl.textContent = Math.round(total);
+
+    let acc = 0;
+    const stops = entries.map(([cat, val]) => {
+      const pct = (val / total) * 100;
+      const start = acc;
+      acc += pct;
+      const color = colors[cat] || "#94a3b8";
+      return `${color} ${start}% ${acc}%`;
+    });
+    donutEl.style.background = `conic-gradient(${stops.join(",")})`;
+
+    const emojiMap = { "еда":"🍔","транспорт":"🚌","шоппинг":"🛍️","дом":"🏠","счета":"📱","развлечения":"🎬","накопление":"🎯","другое":"✨" };
+    legendEl.innerHTML = "";
+    entries.sort((a,b) => b[1]-a[1]).forEach(([cat, val]) => {
+      const pct = Math.round((val/total)*100);
+      const row = document.createElement("div");
+      row.className = "legend-row";
+      row.innerHTML = `
+        <span class="legend-dot" style="background:${colors[cat]||'#94a3b8'}"></span>
+        <span class="legend-cat">${emojiMap[cat]||"✨"} ${cat}</span>
+        <span class="legend-pct">${pct}%</span>
+      `;
+      legendEl.appendChild(row);
+    });
+  }
+
   function render(data) {
     currentCurrency = data.currency || "₽";
     balanceEl.textContent = `${data.balance} ${currentCurrency}`;
     currencyEl.value = currentCurrency;
+
+    if (data.streak && data.streak > 1) {
+      streakBadgeEl.textContent = `🔥 ${data.streak} дн. подряд`;
+      streakBadgeEl.classList.remove("hidden");
+    } else {
+      streakBadgeEl.classList.add("hidden");
+    }
 
     historyEl.innerHTML = "";
     const history = data.history || [];
@@ -279,11 +317,7 @@
       row.className = "history-item";
       const sign = item.amount > 0 ? "+" : "";
       const cls = item.amount > 0 ? "pos" : "neg";
-      row.innerHTML = `
-        <span class="emoji">${item.emoji || "✨"}</span>
-        <span class="comment">${item.comment}</span>
-        <span class="amt ${cls}">${sign}${item.amount} ${currentCurrency}</span>
-      `;
+      row.innerHTML = `<span class="emoji">${item.emoji || "✨"}</span><span class="comment">${item.comment}</span><span class="amt ${cls}">${sign}${item.amount} ${currentCurrency}</span>`;
       historyEl.appendChild(row);
     });
 
@@ -296,17 +330,12 @@
       const pct = Math.min(100, Math.round((g.saved / g.target) * 100));
       const div = document.createElement("div");
       div.className = "goal";
-      div.innerHTML = `
-        <div class="goal-head">
-          <span class="name">🎯 ${name}</span>
-          <span class="pct">${pct}%</span>
-        </div>
-        <div class="goal-nums">${g.saved} / ${g.target} ${currentCurrency}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-      `;
+      div.innerHTML = `<div class="goal-head"><span class="name">🎯 ${name}</span><span class="pct">${pct}%</span></div><div class="goal-nums">${g.saved} / ${g.target} ${currentCurrency}</div><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>`;
       goalsEl.appendChild(div);
     });
 
+    renderDonut(data.month_stats, data.category_colors || {});
+    renderTemplates(data.templates);
     renderDebts(data.debts || []);
   }
 
@@ -314,12 +343,10 @@
     debtsListEl.innerHTML = "";
     const owedToMe = debts.filter(d => d.direction === "in");
     const iOwe = debts.filter(d => d.direction === "out");
-
     if (debts.length === 0) {
       debtsListEl.innerHTML = '<div class="empty">Долгов нет</div>';
       return;
     }
-
     if (owedToMe.length > 0) {
       debtsListEl.innerHTML += '<div class="debt-section-title">Мне должны</div>';
       owedToMe.forEach(d => debtsListEl.appendChild(debtRow(d, "#6ee7b7")));
@@ -333,36 +360,23 @@
   function debtRow(d, color) {
     const row = document.createElement("div");
     row.className = "debt-item";
-    row.innerHTML = `
-      <div class="info">
-        <div class="dname">${d.name}</div>
-        <div class="damt" style="color:${color}">${d.amount} ${currentCurrency}</div>
-      </div>
-      <button data-id="${d.id}">Отдал ✓</button>
-    `;
+    row.innerHTML = `<div class="info"><div class="dname">${d.name}</div><div class="damt" style="color:${color}">${d.amount} ${currentCurrency}</div></div><button data-id="${d.id}">Отдал ✓</button>`;
     row.querySelector("button").addEventListener("click", () => resolveDebt(d.id));
     return row;
   }
 
   async function loadData() {
-    if (!userId) {
-      showError("Открой это через кнопку в боте, не напрямую в браузере.");
-      return;
-    }
+    if (!userId) { showError("Открой это через кнопку в боте, не напрямую в браузере."); return; }
     try {
       const res = await fetch(`/api/data?user_id=${userId}`);
-      const data = await res.json();
-      render(data);
-    } catch (e) {
-      showError("Не получилось загрузить данные.");
-    }
+      render(await res.json());
+    } catch (e) { showError("Не получилось загрузить данные."); }
   }
 
   currencyEl.addEventListener("change", async () => {
     try {
       const res = await fetch("/api/currency", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId, currency: currencyEl.value })
       });
       render(await res.json());
@@ -376,23 +390,17 @@
     quickBtn.disabled = true;
     try {
       const res = await fetch("/api/quick-add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId, text })
       });
-      const data = await res.json();
-      render(data);
+      render(await res.json());
       quickText.value = "";
-    } catch (e) {
-      showError("Не получилось записать — попробуй иначе.");
-    } finally {
-      quickBtn.disabled = false;
-    }
+    } catch (e) { showError("Не получилось записать — попробуй иначе."); }
+    finally { quickBtn.disabled = false; }
   }
   quickBtn.addEventListener("click", submitQuick);
   quickText.addEventListener("keydown", (e) => { if (e.key === "Enter") submitQuick(); });
 
-  // Debts
   document.getElementById("dirIn").addEventListener("click", () => {
     currentDirection = "in";
     document.getElementById("dirIn").classList.add("active");
@@ -410,12 +418,10 @@
     if (!name || !amount) return;
     try {
       const res = await fetch("/api/debt/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId, name, amount, direction: currentDirection })
       });
-      const data = await res.json();
-      render(data);
+      render(await res.json());
       document.getElementById("debtName").value = "";
       document.getElementById("debtAmount").value = "";
     } catch (e) { showError("Не получилось добавить долг."); }
@@ -424,8 +430,7 @@
   async function resolveDebt(id) {
     try {
       const res = await fetch("/api/debt/resolve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId, debt_id: id })
       });
       render(await res.json());
