@@ -13,7 +13,9 @@ CRON_SECRET = os.environ.get("CRON_SECRET", "changeme")
 TG_BASE = f"https://api.telegram.org/bot{BOT_TOKEN}"
 APP_URL = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:5000")
 
-DATA_FILE = "data.json"
+KVDB_BUCKET = os.environ.get("KVDB_BUCKET")
+KVDB_URL = f"https://kvdb.io/{KVDB_BUCKET}/data"
+
 CURRENCIES = ["₽", "$", "€", "₴", "£", "PLN"]
 
 CATEGORY_EMOJI = {
@@ -24,18 +26,20 @@ CATEGORY_COLOR = {
     "еда": "#fbbf24", "транспорт": "#60a5fa", "шоппинг": "#f472b6", "дом": "#34d399",
     "счета": "#a78bfa", "развлечения": "#f87171", "накопление": "#22d3ee", "другое": "#94a3b8",
 }
+GOAL_EMOJIS = ["🎯", "🚗", "🏠", "✈️", "💻", "📱", "🎮", "🎓", "💍", "🐶"]
 
+# стемы (основы слов) — ловят разные формы слова без учёта окончаний
 CATEGORY_KEYWORDS = {
-    "еда": ["кофе", "обед", "ужин", "завтрак", "еда", "продукт", "ресторан", "кафе", "пицц", "суши", "бургер", "магнит", "пятерочк"],
-    "транспорт": ["такси", "метро", "автобус", "бензин", "заправк", "проезд", "транспорт", "уберк"],
+    "еда": ["кофе", "обед", "ужин", "завтрак", "ед", "продукт", "ресторан", "кафе", "пицц", "суши", "бургер", "магнит", "пятерочк"],
+    "транспорт": ["такси", "метро", "автобус", "бензин", "заправ", "проезд", "транспорт", "убер"],
     "шоппинг": ["одежд", "куртк", "обувь", "магазин", "шоппинг", "покупк", "кроссовк"],
-    "дом": ["аренда", "квартир", "ремонт", "мебель"],
+    "дом": ["аренд", "квартир", "ремонт", "мебель"],
     "счета": ["телефон", "интернет", "связь", "подписк", "коммуналк", "счет", "счёт"],
     "развлечения": ["кино", "игра", "концерт", "бар", "развлечен", "клуб"],
 }
-INCOME_TRIGGERS = ["зарплат", "аванс", "получил", "вернули", "кэшбек", "заработал", "доход"]
-GOAL_CONTRIB_TRIGGERS = ["отложил", "отложила", "закинул на", "добавил на", "закинула на"]
-NEW_GOAL_TRIGGERS = ["хочу накопить", "коплю на", "новая цель", "цель:"]
+INCOME_TRIGGERS = ["зарплат", "аванс", "получ", "верну", "кэшбек", "заработ", "доход"]
+GOAL_CONTRIB_TRIGGERS = ["отлож", "закин", "добав"]
+NEW_GOAL_TRIGGERS = ["накопить", "копл", "новая цель", "цель:"]
 
 TEMPLATES = [
     {"emoji": "☕", "label": "Кофе", "text": "потратил 200 на кофе"},
@@ -45,16 +49,24 @@ TEMPLATES = [
 ]
 
 
+# ---------- Хранилище (jsonbin.io — переживает перезапуски Render) ----------
+
 def load_data():
-    if not os.path.exists(DATA_FILE):
+    try:
+        res = requests.get(KVDB_URL, timeout=10)
+        if res.status_code == 404:
+            return {}
+        res.raise_for_status()
+        return res.json() if res.text.strip() else {}
+    except Exception:
         return {}
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
 
 
 def save_data(data):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    try:
+        requests.put(KVDB_URL, data=json.dumps(data), headers={"Content-Type": "application/json"}, timeout=10)
+    except Exception:
+        pass
 
 
 def get_user(data, user_id):
@@ -134,6 +146,24 @@ def record_stat(user, category, amount):
     user["stats"][month_key][category] = user["stats"][month_key].get(category, 0) + amount
 
 
+def create_goal(user, name, target, emoji):
+    user["goals"][name] = {"target": max(float(target), 1), "saved": 0, "emoji": emoji or "🎯"}
+
+
+def contribute_to_goal(user, goal_name, amount, comment=None):
+    if goal_name not in user["goals"]:
+        create_goal(user, goal_name, amount * 4, "🎯")
+    user["goals"][goal_name]["saved"] += amount
+    user["balance"] -= amount
+    today = date.today().isoformat()
+    user["history"].insert(0, {
+        "amount": -amount, "comment": comment or f"отложено: {goal_name}",
+        "category": "накопление", "emoji": user["goals"][goal_name].get("emoji", "🎯"), "date": today,
+    })
+    record_stat(user, "накопление", amount)
+    user["history"] = user["history"][:20]
+
+
 def apply_parsed(user, parsed):
     kind = parsed.get("type")
     amount = float(parsed.get("amount") or 0)
@@ -150,21 +180,23 @@ def apply_parsed(user, parsed):
         user["balance"] += amount
         user["history"].insert(0, {"amount": amount, "comment": comment, "category": category, "emoji": emoji, "date": today})
     elif kind == "goal_contribution":
-        goal_name = parsed.get("goal_name") or "цель"
-        if goal_name not in user["goals"]:
-            user["goals"][goal_name] = {"target": max(amount * 4, 1), "saved": 0}
-        user["goals"][goal_name]["saved"] += amount
-        user["balance"] -= amount
-        user["history"].insert(0, {"amount": -amount, "comment": f"отложено: {goal_name}", "category": "накопление", "emoji": "🎯", "date": today})
-        record_stat(user, "накопление", amount)
+        contribute_to_goal(user, parsed.get("goal_name") or "цель", amount, comment)
     elif kind == "new_goal":
-        goal_name = parsed.get("goal_name") or "цель"
-        target = float(parsed.get("goal_target") or 100000)
-        user["goals"][goal_name] = {"target": target, "saved": 0}
+        create_goal(user, parsed.get("goal_name") or "цель", parsed.get("goal_target") or 100000, "🎯")
 
     user["history"] = user["history"][:20]
     update_streak(user)
     return user
+
+
+def enrich_response(user):
+    month_key = date.today().strftime("%Y-%m")
+    resp = dict(user)
+    resp["month_stats"] = user["stats"].get(month_key, {})
+    resp["templates"] = TEMPLATES
+    resp["category_colors"] = CATEGORY_COLOR
+    resp["goal_emojis"] = GOAL_EMOJIS
+    return resp
 
 
 # ---------- Веб-страница и API ----------
@@ -182,13 +214,7 @@ def api_get_data():
     data = load_data()
     user = get_user(data, user_id)
     save_data(data)
-
-    month_key = date.today().strftime("%Y-%m")
-    resp = dict(user)
-    resp["month_stats"] = user["stats"].get(month_key, {})
-    resp["templates"] = TEMPLATES
-    resp["category_colors"] = CATEGORY_COLOR
-    return jsonify(resp)
+    return jsonify(enrich_response(user))
 
 
 @app.route("/api/currency", methods=["POST"])
@@ -202,7 +228,7 @@ def api_set_currency():
     user = get_user(data, user_id)
     user["currency"] = currency
     save_data(data)
-    return jsonify(user)
+    return jsonify(enrich_response(user))
 
 
 @app.route("/api/quick-add", methods=["POST"])
@@ -218,13 +244,49 @@ def api_quick_add():
     user = get_user(data, user_id)
     user = apply_parsed(user, parsed)
     save_data(data)
+    return jsonify(enrich_response(user))
 
-    month_key = date.today().strftime("%Y-%m")
-    resp = dict(user)
-    resp["month_stats"] = user["stats"].get(month_key, {})
-    resp["templates"] = TEMPLATES
-    resp["category_colors"] = CATEGORY_COLOR
-    return jsonify(resp)
+
+@app.route("/api/goal/add", methods=["POST"])
+def api_goal_add():
+    body = request.get_json(silent=True) or {}
+    user_id = body.get("user_id")
+    name = (body.get("name") or "").strip()
+    target = body.get("target")
+    emoji = body.get("emoji") or "🎯"
+    if not user_id or not name:
+        return jsonify({"error": "invalid request"}), 400
+    try:
+        target = float(target)
+    except (TypeError, ValueError):
+        return jsonify({"error": "invalid target"}), 400
+
+    data = load_data()
+    user = get_user(data, user_id)
+    create_goal(user, name, target, emoji)
+    save_data(data)
+    return jsonify(enrich_response(user))
+
+
+@app.route("/api/goal/contribute", methods=["POST"])
+def api_goal_contribute():
+    body = request.get_json(silent=True) or {}
+    user_id = body.get("user_id")
+    name = (body.get("name") or "").strip()
+    amount = body.get("amount")
+    if not user_id or not name:
+        return jsonify({"error": "invalid request"}), 400
+    try:
+        amount = float(amount)
+    except (TypeError, ValueError):
+        return jsonify({"error": "invalid amount"}), 400
+
+    data = load_data()
+    user = get_user(data, user_id)
+    contribute_to_goal(user, name, amount)
+    update_streak(user)
+    save_data(data)
+    return jsonify(enrich_response(user))
 
 
 @app.route("/api/debt/add", methods=["POST"])
@@ -245,7 +307,7 @@ def api_debt_add():
     user = get_user(data, user_id)
     user["debts"].append({"id": int(time.time() * 1000), "name": name, "amount": amount, "direction": direction})
     save_data(data)
-    return jsonify(user)
+    return jsonify(enrich_response(user))
 
 
 @app.route("/api/debt/resolve", methods=["POST"])
@@ -259,7 +321,7 @@ def api_debt_resolve():
     user = get_user(data, user_id)
     user["debts"] = [d for d in user["debts"] if d["id"] != debt_id]
     save_data(data)
-    return jsonify(user)
+    return jsonify(enrich_response(user))
 
 
 # ---------- Бот через вебхук ----------
@@ -268,8 +330,7 @@ def send_message(chat_id, text, reply_markup=None):
     payload = {"chat_id": chat_id, "text": text}
     if reply_markup:
         payload["reply_markup"] = reply_markup
-    r = requests.post(f"{TG_BASE}/sendMessage", json=payload)
-    print("SEND RESPONSE:", r.status_code, r.text)
+    requests.post(f"{TG_BASE}/sendMessage", json=payload)
 
 
 @app.route("/webhook", methods=["POST"])
@@ -283,21 +344,12 @@ def webhook():
     user_id = message["from"]["id"]
     text = message.get("text", "")
 
-    send_message(chat_id,
-    "Привет! 👋 Я твой личный трекер трат и накоплений 💰\n\n"
-    "Никаких сложных форм и таблиц — просто пиши мне как другу, что произошло, и я всё аккуратно запишу 📝\n\n"
-    "Например:\n"
-    "☕️ «потратил 350 на кофе»\n"
-    "🚗 «отложил 5000 на машину»\n"
-    "🛒 «потратил 1200 на продукты»\n"
-    "🎬 «потратил 800 на кино»\n"
-    "🏠 «отложил 3000 на квартиру»\n\n"
-    "Я сам пойму сумму, категорию и добавлю нужный эмодзи 😉\n\n"
-    "📊 Хочешь увидеть полную картину — баланс, историю, графики? Жми на кнопку ниже 👇\n\n"
-    "💬 Вопросы или предложения по сотрудничеству — пиши @genyalenslava",
-    reply_markup={"inline_keyboard": [[{"text": "📊 Открыть трекер", "web_app": {"url": APP_URL}}]]})
-
-    return jsonify({"ok": True})
+    if text == "/start":
+        send_message(chat_id,
+            "Привет! Я твой трекер накоплений.\nПиши фразой: «потратил 350 на кофе», «отложил 5000 на машину»\n\nИли открой интерфейс:",
+            reply_markup={"inline_keyboard": [[{"text": "Открыть трекер", "web_app": {"url": APP_URL}}]]}
+        )
+        return jsonify({"ok": True})
 
     parsed = parse_rule_based(text)
     data = load_data()
@@ -317,13 +369,10 @@ def set_webhook():
     return jsonify(res.json())
 
 
-# ---------- Ежедневное напоминание (дёргается внешним cron) ----------
-
 @app.route("/api/cron/remind")
 def cron_remind():
     if request.args.get("key") != CRON_SECRET:
         return jsonify({"error": "forbidden"}), 403
-
     data = load_data()
     today = date.today().isoformat()
     sent = 0
